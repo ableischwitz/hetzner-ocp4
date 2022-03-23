@@ -1,7 +1,11 @@
 ---
+- name: define base uri
+  set_fact:
+    robot_base: https://robot-ws.your-server.de/
+
 - name: Retrieve first public key fingerprint
   uri:
-    url: https://robot-ws.your-server.de/key
+    url: "{{ robot_base }}/key"
     return_content: yes
     method: GET
     user: "{{ hetzner_webservice_username }}"
@@ -15,9 +19,33 @@
   set_fact:
     authorized_key: "{{ key.json[0].key.fingerprint }}"
 
+- name: "Retrieve server number from IP {{ hetzner_ip }}"
+  uri:
+    url: "{{ robot_base }}/server"
+    return_content: yes
+    method: GET
+    user: "{{ hetzner_webservice_username }}"
+    password: "{{ hetzner_webservice_password }}"
+    force_basic_auth: yes
+    status_code: 200
+  register: servers
+  delegate_to: localhost
+
+- name: Query enabled and ready servers for matching ipv4 or ipv6
+  set_fact:
+    query_ready: "[?cancelled == false && status == \"ready\"].{number: server.server_number, ipv4: server.server_ip, ipv6: server.server_ipv6_net, status: server.status, cancelled: server.cancelled}"
+    query: "[] | [?contains(\'{{ public_ipv6 }}\', ipv6) || contains(ipv4, \'{{ hetzner_ip }}\')].{number: number, ipv4: ipv4, ipv6: ipv6}"
+
+- debug: msg="{{ servers.json }}"
+
+- name: Set server_id fact
+  set_fact:
+    server_id: "{{ servers.json | to_json | from_json | json_query(query_ready) | json_query(query) | json_query('[].number | [0]') | int }}"
+  delegate_to: localhost
+
 - name: Check rescue mode
   uri:
-    url: "https://robot-ws.your-server.de/boot/{{ hetzner_ip }}/rescue"
+    url: "{{ robot_base }}/boot/{{ server_id }}/rescue"
     method: GET
     user: "{{ hetzner_webservice_username }}"
     password: "{{ hetzner_webservice_password }}"
@@ -29,7 +57,7 @@
 - name: Activate rescue mode
   when: not rescue.json.rescue.active
   uri:
-    url: "https://robot-ws.your-server.de/boot/{{ hetzner_ip }}/rescue"
+    url: "{{ robot_base }}/boot/{{ server_id }}/rescue"
     method: POST
     user: "{{ hetzner_webservice_username }}"
     password: "{{ hetzner_webservice_password }}"
@@ -41,9 +69,14 @@
   register: activated
   delegate_to: localhost
 
+- debug: msg="{{ activated }}"
+
+- name: Pause a bit for the hardware reset to kick in
+  pause: seconds=5
+
 - name: Execute hardware reset
   uri:
-    url: "https://robot-ws.your-server.de/reset/{{ hetzner_ip }}"
+    url: "{{ robot_base }}/reset/{{ server_id }}"
     method: POST
     user: "{{ hetzner_webservice_username }}"
     password: "{{ hetzner_webservice_password }}"
@@ -52,6 +85,7 @@
     status_code: 200
     headers:
       Content-Type: "application/x-www-form-urlencoded"
+  register: reset
   delegate_to: localhost
 
 - name: Remove server from local known_hosts file
@@ -62,14 +96,14 @@
   changed_when: '"updated" in output.stdout'
 
 - name: Pause a bit for the hardware reset to kick in
-  pause: seconds=15
+  pause: seconds=5
 
-- name: Wait 300 seconds for port 22 to become open
+- name: Wait 600 seconds for port 22 to become open
   wait_for:
     port: 22
     host: '{{ inventory_hostname }}'
     delay: 10
-    timeout: 300
+    timeout: 600
   connection: local
 
 - name: Ping rescue system
