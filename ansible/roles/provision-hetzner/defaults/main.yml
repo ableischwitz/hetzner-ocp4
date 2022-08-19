@@ -1,11 +1,15 @@
 ---
-hetzner_webservice_username:    # see Hetzner Robot -> Settings -> Webservice
-hetzner_webservice_password:
-hetzner_hostname:               # needed for Hetzner server computer name
-hetzner_ip:                     # needed for Hetzner Web UI and Ansible
+hetzner_webservice_username: "{{ undef(hint='You must provide a webservice username, see Hetzner Robot -> Settings -> Webservice') }}"
+hetzner_webservice_password: "{{ undef(hint='You must provide a wevservice password') }}"
+hetzner_hostname: "{{ undef(hint='You must provide a hostname for this host') }}"
+hetzner_ip: "{{ undef(hint='You must provide a server IP') }}"
 hetzner_autosetup_file: templates/autosetup
 hetzner_disk1: sda
 hetzner_disk2: sdb
 hetzner_image: "/root/.oldroot/nfs/install/../images/CentOS-80-stream-amd64-base.tar.gz"
 hetzner_image_ignore_errors: false
+hetzner_reboot_delay: 900
+hetzner_force_provisioning: false
+hetzner_additional_vg: vg_data
+hetzner_additional_disks: "{{ default(omit) }}"
 ansible_python_interpreter: /usr/bin/python3  # target host python interpreter

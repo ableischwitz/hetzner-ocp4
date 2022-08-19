@@ -11,7 +11,7 @@ controlPlane:
 metadata:
   name: {{ cluster_name }}
 networking:
-  clusterNetworks:
+  clusterNetwork:
 {% if 'IPv4' in ip_families  %}
   - cidr: 10.128.0.0/14
     hostSubnetLength: 9
@@ -38,7 +38,7 @@ networking:
 platform:
   none: {}
 pullSecret:
-  '{{ image_pull_secret }}'
+  '{{ image_pull_secret | to_nice_json }}'
 sshKey: |
   {{ ssh_public_key }}
 {% if install_config_additionalTrustBundle is defined %}

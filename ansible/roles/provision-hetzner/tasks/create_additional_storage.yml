@@ -1,0 +1,25 @@
+---
+- block:
+    - name: add extra volumegroup
+      community.general.system.lvg:
+        vg: "{{ hetzner_additional_vg }}"
+        pvs: "/dev/{{ hetzner_additional_disks }}"
+
+    - name: create logical volume
+      community.general.system.lvol:
+        vg: "{{ hetzner_additional_vg }}"
+        lv: lv_extra
+        size: 50G
+
+    - name: create filesystem
+      community.general.system.filesystem:
+        fstype: xfs
+        dev: "/dev/{{ hetzner_additional_vg }}/lv_extra"
+
+    - name: mount filesystem
+      ansible.posix.mount:
+        path: /var/lib/data
+        src: "/dev/{{ hetzner_additional_vg }}/lv_extra"
+        fstype: xfs
+        state: mounted
+  when: hetzner_additional_disks is defined

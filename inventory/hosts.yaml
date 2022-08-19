@@ -2,5 +2,5 @@
 all:
   hosts:
     host:
-      ansible_host: localhost
-      ansible_private_key_file: ~/.ssh/id_rsa
+      ansible_host: '{{ hetzner_ip }}'
+      ansible_ssh_private_key_file: '{{ hetzner_ssh_private_id }}'

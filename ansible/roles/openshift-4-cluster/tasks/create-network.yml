@@ -160,5 +160,8 @@
     path: /etc/hosts
     marker: "# {mark} ANSIBLE MANAGED BLOCK {{ cluster_name }}.{{ public_domain }}"
     block: |
-      {{ listen_address }} api.{{ cluster_name }}.{{ public_domain }}
+      {{ item }} api.{{ cluster_name }}.{{ public_domain }}
+  loop:
+    - '{{ listen_address | default("127.0.0.1") }}'
+    - '{{ listen_address_ipv6 | default("::1") }}'
   tags: public_dns
