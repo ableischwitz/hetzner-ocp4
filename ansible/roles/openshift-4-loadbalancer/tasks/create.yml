@@ -3,6 +3,7 @@
   yum:
     name:
       - podman
+      - netavark
     state: present
 
 - name: Install OpenShift 4 Loadbalancer SystemD service

@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenShift 4 LoadBalancer ({{ lb_name }})
-After=network.target
+After=network.target libvirtd.service
 
 [Service]
 Type=simple
