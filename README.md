@@ -122,6 +122,7 @@ Here is an example about [_cluster.yml_](cluster-example.yml) file that contains
 |`public_ipv6`                |Same as `public_ip` but for IPv6 | `listen_address_ipv6` |
 |`masters_schedulable`        |Optional to overwrite masters schedulable| `false` |
 |`sdn_plugin_name`            |Optional to change the SDN plugin between `OVNKubernetes` or `OpenShiftSDN` | `OVNKubernetes` |
+|`ipsec`                    |Optional to enable IPSec when `OVNKubernetes` is used | `false` |
 
 ### Cluster design (single node, compact or normal)
 
@@ -206,6 +207,7 @@ Please configure in `cluster.yml` all necessary credentials:
 |`install_config_imageContentSources`|empty|Important for air-gapped installation. checkout [docs/air-gapped.md](docs/air-gapped.md)
 |`letsencrypt_disabled`|`false`|This allows you to disable letsencrypt setup. (Default is enabled letsencrypt.)
 |`sdn_plugin_name`|`OVNKubernetes`|This allows you to change SDN plugin. Valid values are OpenShiftSDN and OVNKubernetes. (Default is OVNKubernetes.)
+|`ipsec`|`false`|Enable IPSec if `OVNKubernetes` is used as SDN plugin.
 |`masters_schedulable`|true|Set to false if don't want to allow workload onto the master nodes. (Default is to allow this)|
 
 ## Prepare kvm-host and install OpenShift

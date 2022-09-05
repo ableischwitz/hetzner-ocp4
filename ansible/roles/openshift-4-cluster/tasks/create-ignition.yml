@@ -30,6 +30,13 @@
     backrefs: yes
   when: not masters_schedulable
 
+- name: Enable IPSec for OVN
+  ansible.builtin.template:
+    src: cluster-network-03-config.yml.j2
+    dest: "{{ openshift_install_dir }}/manifests/cluster-network-03-config.yml"
+    mode: 0644
+  when: sdn_plugin_name == "OVNKubernetes" and ipsec == true
+
 - name: Create ignition files
   ansible.builtin.command: "{{ openshift_install_command }} --dir={{ openshift_install_dir }} create ignition-configs"
 
