@@ -60,6 +60,9 @@
       - firewalld
       - policycoreutils-python-utils
       - bind-utils
+      - bash-completion
+      - tmux
+      - yq
     state: latest
   delegate_to: "{{ hetzner_ip }}"
 
