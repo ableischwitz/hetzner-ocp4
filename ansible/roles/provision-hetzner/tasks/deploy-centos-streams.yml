@@ -123,7 +123,6 @@
     - hetzner_disk2_id is defined
     - "(item.value.links.ids[0] | default()) == hetzner_disk2_id"
 
-
 - name: Copy autosetup configuration file
   ansible.builtin.template:
     src: "{{ hetzner_autosetup_file }}"
@@ -164,6 +163,38 @@
     - result.stdout is search('An error occured while installing the new system')
     - not hetzner_image_ignore_errors
   delegate_to: localhost
+
+### fix the following issue:
+## installimage configures the network by unsing the ifcfg-<device> scripts
+## with IPv6 only, NM tries to configure IPv4 and the default config for IPv6
+## does seem to trigger a constant re-configuration until it finally fails.
+## to avoid this situation, migrate to NM scripts and configure the connection
+## to proper static values. (worked for me at least).
+
+  ansible.builtin.set_fact:
+    primary_NIC: "{{ ansible_default_ipv4.interface }}"
+  when: ansible_default_ipv4.address is defined
+
+- ansible.builtin.set_fact:
+    primary_NIC: "{{ ansible_default_ipv6.interface }}"
+  when: ansible_default_ipv6.address is defined
+
+  name: migrate deprecated network-scripts based configuration
+  ansible.builtin.command:
+    cmd: 'nmcli connection migrate "System {{ primary_NIC }}"'
+    creates: "/etc/NetworkManager/system-connections/System {{ primary_NIC }}.nmconnection"
+    removes: "/etc/sysconfig/network-scripts/ifcfg-{{ primary_NIX }}"
+  when: primary_NIC is defined
+
+- name: Disable IPv4 configuration from NIC
+  ansible.builtin.command:
+    cmd: 'nmcli connection modify "System {{ primary_NIC }}" ipv4.method disabled'
+  when: ansible_default_ipv4.address is not defined
+
+- name: Set IPv6 configuration to manual
+  ansible.builtin.command:
+    cmd: 'nmcli connection modify "System {{ primary_NIC }}" ipv6.method manual'
+  when: ansible_default_ipv6.address is defined
 
 - name: Reboot server
   ansible.builtin.shell: sync && sleep 2 && shutdown -r now
