@@ -282,8 +282,8 @@
   ansible.builtin.debug:
     msg:
       - "Please don't forget to create DNS"
-      - " - api.{{ cluster_name }}.{{ public_domain }} => {{ public_ip | default(listen_address) }}"
-      - " - *.apps.{{ cluster_name }}.{{ public_domain }} => {{ public_ip | default(listen_address) }}"
+      - " - api.{{ cluster_name }}.{{ public_domain }} => {{ public_ip | default(listen_address) }} / {{ public_ipv6 | default(omit) }}"
+      - " - *.apps.{{ cluster_name }}.{{ public_domain }} => {{ public_ip | default(listen_address) }} / {{ public_ipv6 | default(omit) }}"
   when: dns_provider == 'none'
   tags:
     - lastmessage
