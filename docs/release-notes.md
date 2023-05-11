@@ -1,11 +1,33 @@
 # RELEASE NOTES
-## 2022-08-31
-* Improve Hetzner deployment
-    * add option to force deployment
-    * add options to allow usage of disk-by-id during installation
-        * lacking that option caused a lot of issues if there are 3 disks (2 SSD + 1 HDD) which should be part of a single software-raid
-    * added local storage for cluster credentials ($PWD/config/<clustername>)
-    * changed ansible-module names to comply to new standard of fully-qualified module names
+
+## 2023-04-14
+
+ * Bump OpenShift version to 4.12.10
+ * Fixed #249 Hetzner DNS Provider: Let's Encrypt DNS Record Fails w/ multiple Hetzner DNS Zones: "HTTP Error 422: Unprocessable Entity"
+ * Fixed #241 Hetzner DNS Api not idempotent - playbook cannot be rerun
+ * [Added RHEL 9 installation nodes](hetzner_rhel9.md)
+ * Fixed #264 rhcos variant has been removed; use openshift variant instead: https://coreos.github.io/butane/upgrading-openshift/
+ * Fixed #246 Use relative DNS records for Gandi
+ * Fixed #265 Looks like ./ansible/99-destroy-cluster.yml doesn't work well anymore.
+
+## 2022-12-17
+
+ * Bump openshift version to 4.11.12
+ * Update ansible-automation-platform to 2.3
+ * Fixed problem with `ansible_python_interpreter` during `00-provision-hetzner.yml`
+ * Added new option `hetzner_size_of_libvirt_images`
+ * Added new option `redhat_subscription_activationkey`, `redhat_subscription_org_id`, `redhat_subscription_pool` to handle Red Hat entitlement during `01-prepare-host.yml`
+ * Introduce `artifacts_dir`
+ * Change ssh public key and kubeconfig handling to support remote execution
+ * Handling reboot after new kernel is installed
+ * [Added support for remote execution (execute playbooks on your laptop)](remote-execution.md)
+ * Added `install_config_capabilities` configuration
+ * Added Gandi as a DNS provider
+ * [Added instructions for RHEL9 image creation](hetzner_rhel9.md)
+ * Added Rocky Linux 9 support
+
+>>>>>>> dc2f464 (Add Rocky Linux 9 support)
+
 
 ## 2022-06-19
 

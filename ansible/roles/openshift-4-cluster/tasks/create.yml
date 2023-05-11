@@ -18,7 +18,8 @@
     - add-ons
     - post-install-add-ons
 
-- ansible.builtin.import_tasks: create-network.yml
+- name: Create network
+  ansible.builtin.import_tasks: create-network.yml
   vars:
     vn_public_domain: "{{ cluster_name }}.{{ public_domain }}"
     vn_master_count: "{{ master_count }}"
@@ -69,6 +70,8 @@
     le_digitalocean_token: "{{ digitalocean_token }}"
     le_digitalocean_zone: "{{ digitalocean_zone }}"
 
+    le_gandi_api_key: "{{ gandi_api_key }}"
+    le_gandi_zone: "{{ gandi_zone }}"
   tags: letsencrypt
   when: not letsencrypt_disabled
 
@@ -76,13 +79,19 @@
   # Work-a-round: tags inheritance don't work without a block.
   # https://github.com/ansible/ansible/issues/41540#issuecomment-419433375
   block:
-    - ansible.builtin.include_tasks: download-openshift-artifacts.yml
+    - name: Include tasks
+      ansible.builtin.include_tasks: download-openshift-artifacts.yml
   tags: download-openshift-artifacts
+
+- name: Slurp ssh public key
+  ansible.builtin.slurp:
+    src: "{{ ssh_public_key_location }}.pub"
+  register: slurped_ssh_public_key
 
 - name: Create ignition files
   ansible.builtin.include_tasks: create-ignition.yml
   vars:
-    ssh_public_key: "{{ lookup('file', '{{ ssh_public_key_location }}.pub') }}"
+    ssh_public_key: "{{ slurped_ssh_public_key['content'] | b64decode }}"
   tags: ignition
 
 - name: Create bootstrap node
@@ -90,7 +99,7 @@
   vars:
     vm_instance_name: "{{ cluster_name }}-bootstrap"
     vm_network: "{{ cluster_name }}"
-    vm_ignition_file: "{{ openshift_install_dir }}/bootstrap-extra.ign"
+    vm_ignition_file: "{{ openshift_install_dir }}/bootstrap{{ ignition_filename_appendix }}.ign"
     vm_mac_address: "52:54:00:{{ '%02x' % vn_subnet.split('.')[1]|int }}:{{ '%02x' % vn_subnet.split('.')[2]|int }}:{{ '%02x' % 2 }}"
     vm_vcpu: 4
     vm_memory_size: 16384
@@ -102,7 +111,7 @@
   vars:
     vm_instance_name: "{{ cluster_name }}-master-{{ item }}"
     vm_network: "{{ cluster_name }}"
-    vm_ignition_file: "{{ openshift_install_dir }}/master-extra.ign"
+    vm_ignition_file: "{{ openshift_install_dir }}/master{{ ignition_filename_appendix }}.ign"
     vm_mac_address: "52:54:00:{{ '%02x' % vn_subnet.split('.')[1]|int }}:{{ '%02x' % vn_subnet.split('.')[2]|int }}:{{ '%02x' % (10 + item|int) }}"
     vm_vcpu: "{{ master_vcpu }}"
     vm_special_cpu: "{{ master_special_cpu | default('') }}"
@@ -116,7 +125,7 @@
   vars:
     vm_instance_name: "{{ cluster_name }}-compute-{{ item }}"
     vm_network: "{{ cluster_name }}"
-    vm_ignition_file: "{{ openshift_install_dir }}/worker-extra.ign"
+    vm_ignition_file: "{{ openshift_install_dir }}/worker{{ ignition_filename_appendix }}.ign"
     vm_mac_address: "52:54:00:{{ '%02x' % vn_subnet.split('.')[1]|int }}:{{ '%02x' % vn_subnet.split('.')[2]|int }}:{{ '%02x' % (10 + master_count|int + item|int) }}"     # noqa line-length
     vm_vcpu: "{{ compute_vcpu }}"
     vm_special_cpu: "{{ compute_special_cpu | default('') }}"

@@ -11,4 +11,7 @@ hetzner_disk1_id:               # disk-by-id device name (as installimage is not
 hetzner_disk2_id:               # - same for disk2, both alternatives to "hetzner_disk*" values
 hetzner_image: "/root/.oldroot/nfs/install/../images/CentOS-80-stream-amd64-base.tar.gz"
 hetzner_image_ignore_errors: false
-ansible_python_interpreter: /usr/bin/python3  # target host python interpreter
+hetzner_size_of_libvirt_images: all
+
+robot_base: https://robot-ws.your-server.de/
+needs_reprovision: false
