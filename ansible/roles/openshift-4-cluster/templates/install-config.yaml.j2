@@ -48,7 +48,7 @@ networking:
 {% endif %}
 platform:
   none: {}
-fips: {{ fips | default("false") }}
+fips: {{ fips }}
 pullSecret:
   '{{ image_pull_secret }}'
 sshKey: |

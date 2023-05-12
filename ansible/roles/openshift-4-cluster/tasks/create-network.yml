@@ -94,7 +94,6 @@
 #
 # Libvirt Network
 #
-
 - name: Define network {{ cluster_name }}
   community.libvirt.virt_net:
     command: define

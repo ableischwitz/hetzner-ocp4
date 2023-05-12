@@ -37,6 +37,7 @@ compute_memory_unit: 'MiB'
 #   You may use k, M, G, T, P or E suffixe
 compute_root_disk_size: '120G'
 
+fips: false
 ipsec: false
 network_mtu: 1500
 
