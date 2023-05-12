@@ -1,6 +1,6 @@
 ---
 - name: Retrieve first public key fingerprint
-  uri:
+  ansible.builtin.uri:
     url: "{{ robot_base }}/key"
     return_content: yes
     method: GET
@@ -32,7 +32,7 @@
 # =>  "fingerprint": "SHA256:MV6mnlC44jtntBj327ya7mump58SUJQDzzAmlJxnMkM",
 
 - name: Set authorized_key fact
-  set_fact:
+  ansible.builtin.set_fact:
     authorized_key: "{{ key.json[0].key.fingerprint }}"
 
 - name: "Retrieve server number from IP {{ hetzner_ip }}"
@@ -62,11 +62,11 @@
 
 - name: Filter server by IPv4 or IPv6
   delegate_to: localhost
-  set_fact:
+  absible.builtin.set_fact:
     server_id: "{{ server_id_list | first }}"
 
 - name: Check rescue mode
-  uri:
+  ansible.builtin.uri:
     url: "{{ robot_base }}/boot/{{ server_id }}/rescue"
     method: GET
     user: "{{ hetzner_webservice_username }}"
@@ -77,7 +77,7 @@
   delegate_to: localhost
 
 - name: Activate rescue mode
-  uri:
+  ansible.builtin.uri:
     url: "{{ robot_base }}/boot/{{ server_id }}/rescue"
     method: POST
     user: "{{ hetzner_webservice_username }}"
@@ -94,10 +94,10 @@
 # - debug: msg="{{ activated }}"
 
 - name: Pause a bit to allow rescue mode to settle
-  pause: seconds=5
+  ansible.builtin.pause: seconds=5
 
 - name: Execute hardware reset
-  uri:
+  ansible.builtin.uri:
     url: "{{ robot_base }}/reset/{{ server_id }}"
     method: POST
     user: "{{ hetzner_webservice_username }}"
@@ -111,25 +111,44 @@
   delegate_to: localhost
 
 - name: Remove server from local known_hosts file
-  command: "/usr/bin/ssh-keygen -R {{ hetzner_ip }}"
+  ansible.builtin.command: "/usr/bin/ssh-keygen -R {{ hetzner_ip }}"
   register: output
   failed_when: output.rc != 0
   changed_when: '"updated" in output.stdout'
   delegate_to: localhost
 
 - name: Pause a bit for the hardware reset to kick in
-  pause: seconds=5
+  ansible.builtin.pause: seconds=5
 
 - name: Wait 600 seconds for port 22 to become open
-  wait_for:
+  ansible.builtin.wait_for:
     port: 22
     host: '{{ hetzner_ip }}'
     delay: 10
     timeout: 600
   connection: local
 
+- ansible.builtin.gather_facts:
+  delegate_to: "{{ hetzner_ip }}"
+
+- name: Adjust DRIVE1 assignment based on current status
+  ansible.builtin.set_fact:
+    hetzner_disk1: "{{ item.key }}"
+  with_dict: "{{ ansible_devices }}"
+  when:
+    - hetzner_disk1_id is defined
+    - "(item.value.links.ids[0] | default()) == hetzner_disk1_id"
+
+- name: Adjust DRIVE2 assignment based on current status
+  ansible.builtin.set_fact:
+    hetzner_disk2: "{{ item.key }}"
+  with_dict: "{{ ansible_devices }}"
+  when:
+    - hetzner_disk2_id is defined
+    - "(item.value.links.ids[0] | default()) == hetzner_disk2_id"
+
 - name: Copy autosetup configuration file
-  template:
+  ansible.builtin.template:
     src: "{{ hetzner_autosetup_file }}"
     dest: /root/autosetup.ansible
     owner: root
@@ -138,7 +157,7 @@
   delegate_to: "{{ hetzner_ip }}"
 
 - name: Run installimage
-  command: "/root/.oldroot/nfs/install/installimage -a -c /root/autosetup.ansible"
+  ansible.builtin.command: "/root/.oldroot/nfs/install/installimage -a -c /root/autosetup.ansible"
   environment:
     TERM: "vt100"
   register: result
@@ -147,13 +166,13 @@
   delegate_to: "{{ hetzner_ip }}"
 
 - name: Print installimage output with -v
-  debug:
+  ansible.builtin.debug:
     var: result.stdout_lines
     verbosity: 1
   delegate_to: localhost
 
 - name: Check stderr from installimage
-  debug:
+  ansible.builtin.debug:
     msg: "Something want wrong at installimage: {{ result.stderr_lines | join('\n') }}"
   when:
     - result.stderr_lines | length > 0
@@ -162,7 +181,7 @@
 
 ### todo: add pulling of debug.log which is created by the installer for further analysis
 - name: Check stdout from installimage
-  fail:
+  ansible.builtin.fail:
     msg: "Installation failed, check log: {{ result.stdout_lines | join('\n') }}"
   when:
     - >
@@ -171,8 +190,40 @@
     - not hetzner_image_ignore_errors
   delegate_to: localhost
 
+### fix the following issue:
+## installimage configures the network by unsing the ifcfg-<device> scripts
+## with IPv6 only, NM tries to configure IPv4 and the default config for IPv6
+## does seem to trigger a constant re-configuration until it finally fails.
+## to avoid this situation, migrate to NM scripts and configure the connection
+## to proper static values. (worked for me at least).
+
+  ansible.builtin.set_fact:
+    primary_NIC: "{{ ansible_default_ipv4.interface }}"
+  when: ansible_default_ipv4.address is defined
+
+- ansible.builtin.set_fact:
+    primary_NIC: "{{ ansible_default_ipv6.interface }}"
+  when: ansible_default_ipv6.address is defined
+
+  name: migrate deprecated network-scripts based configuration
+  ansible.builtin.command:
+    cmd: 'nmcli connection migrate "System {{ primary_NIC }}"'
+    creates: "/etc/NetworkManager/system-connections/System {{ primary_NIC }}.nmconnection"
+    removes: "/etc/sysconfig/network-scripts/ifcfg-{{ primary_NIX }}"
+  when: primary_NIC is defined
+
+- name: Disable IPv4 configuration from NIC
+  ansible.builtin.command:
+    cmd: 'nmcli connection modify "System {{ primary_NIC }}" ipv4.method disabled'
+  when: ansible_default_ipv4.address is not defined
+
+- name: Set IPv6 configuration to manual
+  ansible.builtin.command:
+    cmd: 'nmcli connection modify "System {{ primary_NIC }}" ipv6.method manual'
+  when: ansible_default_ipv6.address is defined
+
 - name: Reboot server
-  shell: sync && sleep 2 && shutdown -r now
+  ansible.builtin.shell: sync && sleep 2 && shutdown -r now
   async: 1
   poll: 0
   changed_when: true
@@ -180,14 +231,14 @@
   delegate_to: "{{ hetzner_ip }}"
 
 - name: Remove server from local known_hosts file
-  command: "/usr/bin/ssh-keygen -R {{ hetzner_ip }}"
+  ansible.builtin.command: "/usr/bin/ssh-keygen -R {{ hetzner_ip }}"
   register: output
   failed_when: output.rc != 0
   changed_when: '"updated" in output.stdout'
   delegate_to: localhost
 
 - name: Wait 600 seconds for port 22 to become open
-  wait_for:
+  ansible.builtin.wait_for:
     port: 22
     host: '{{ hetzner_ip }}'
     delay: 10

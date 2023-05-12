@@ -5,21 +5,24 @@
   register: host_facts
   delegate_to: "{{ hetzner_ip }}"
 
-- ansible.builtin.set_fact:
-    needs_reprovision: True
+- name: Check Boot image and hetzner_force_provisioning
+  ansible.builtin.set_fact:
+    needs_reprovision: true
   when:
-    - host_facts.ansible_facts.ansible_cmdline.BOOT_IMAGE is match("rescue") or (hetzner_force_provisioning is defined and hetzner_force_provisioning == true) 
+    - host_facts.ansible_facts.ansible_cmdline.BOOT_IMAGE is match("rescue") or (hetzner_force_provisioning is defined and hetzner_force_provisioning )
   delegate_to: localhost
 
 - name: Provision server
-  include_tasks: deploy-centos-streams.yml
-  when: needs_reprovision == True
+  include_tasks: provision-server.yml
+  when: needs_reprovision == true
 
 - name: Check ansible_python_interpreter
   ansible.builtin.shell: "which python3"
   register: rc
   ignore_errors: true
   delegate_to: "{{ hetzner_ip }}"
+  tags:
+    - skip_ansible_lint
 
 - name: Set ansible_python_interpreter to /usr/libexec/platform-python (RHEL 8)
   set_fact:
@@ -31,37 +34,6 @@
     path: /etc/ssh/sshd_config
     regexp: '^PasswordAuthentication yes'
     line: 'PasswordAuthentication no'
-    mode: 0600
   delegate_to: "{{ hetzner_ip }}"
   notify:
     - Restart SSH daemon
-
-- name: Update all packages
-  ansible.builtin.package:
-    name: "*"
-    state: latest
-  delegate_to: "{{ hetzner_ip }}"
-
-- name: Install libvirtd
-  ansible.builtin.package:
-    name:
-      - libvirt-client
-      - libvirt
-    state: latest
-  delegate_to: "{{ hetzner_ip }}"
-
-- name: Install base-tooling
-  ansible.builtin.package:
-    name:
-      - firewalld
-      - policycoreutils-python-utils
-      - bind-utils
-      - bash-completion
-      - tmux
-      - yq
-    state: latest
-  delegate_to: "{{ hetzner_ip }}"
-
-- name: "Retrieve current setup of {{ hetzner_ip }}"
-  ansible.builtin.gather_facts:
-  delegate_to: "{{ hetzner_ip }}"
