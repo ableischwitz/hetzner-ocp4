@@ -1,4 +1,14 @@
 ---
+- name: Create "install_config_proxy" for local proxy
+  ansible.builtin.set_fact:
+    install_config_proxy:
+      # yamllint disable rule:line-length
+      httpProxy: "http://{{ ansible_host }}:3128"
+      httpsProxy: "http://{{ ansible_host }}:3128"
+      noProxy: "{{ ansible_host }}"
+      # yamllint enable rule:line-length
+  when: proxy_cache_enabled is defined and proxy_cache_enabled
+
 - name: Ensure Podman is present
   ansible.builtin.package:
     name:
