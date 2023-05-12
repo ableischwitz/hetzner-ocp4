@@ -212,6 +212,7 @@ Please configure in `cluster.yml` all necessary credentials:
 |Variable | Default | Description |
 |---|---|---|
 |`storage_nfs`|false|Setup a local NFS server, create a Storage Class (with [nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) ) pointing to it, and use that StorageClass for the internal Registry Storage|
+|`coreos_version`|4.12.10|RHCOS version to be used for installaton - check [the mirror](https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/) for available versions|
 |`vm_autostart`|false|Create cluster VMs with `autostart` enabled|
 |`vm_storage_backend`|`qcow2`|You can choose between default `qcow2` and `lvm` as storage backend.|
 |`vm_storage_backend_location`|empty|Important for vm_storage_backend lvm, please add the volume group for example `vg0`|
