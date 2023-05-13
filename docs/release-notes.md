@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+## 2023-05-13
+ * Added pre-check routines to avoid failing at a later time
+   - all parameters which are required have to be provided, otherwise the playbook will fail early.
+ * Removed blocker for installation of OpenShift 4.12 with IPv6 enabled. Installation is now completing without issues.
+
 ## 2023-04-14
 
  * Bump OpenShift version to 4.12.10
